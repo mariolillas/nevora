@@ -116,6 +116,58 @@ export async function renderWithMarker(blobOrFile, marker, maxSide = 1400) {
   return canvas.toDataURL('image/jpeg', 0.85);
 }
 
+// Dibuja la geometría del escáner (perímetro de lesión o wireframes de
+// cabello + mapa de calor) sobre la imagen para incrustarla en el PDF.
+export async function renderWithScan(blobOrFile, scan, marker, maxSide = 1400) {
+  const img = await loadImage(blobOrFile);
+  let { naturalWidth: w, naturalHeight: h } = img;
+  const scale = Math.min(1, maxSide / Math.max(w, h));
+  w = Math.round(w * scale); h = Math.round(h * scale);
+  const canvas = document.createElement('canvas');
+  canvas.width = w; canvas.height = h;
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(img, 0, 0, w, h);
+
+  // mapa de calor (lesión)
+  if (scan?.heat) {
+    const cw = w / scan.heat.gx, ch = h / scan.heat.gy;
+    ctx.save(); ctx.globalCompositeOperation = 'screen';
+    for (let gy = 0; gy < scan.heat.gy; gy++) for (let gx = 0; gx < scan.heat.gx; gx++) {
+      const v = scan.heat.cells[gy * scan.heat.gx + gx];
+      if (v < 0.12) continue;
+      ctx.globalAlpha = v * 0.45;
+      ctx.fillStyle = `hsl(${60 - v * 60}, 95%, 55%)`;
+      ctx.fillRect(gx * cw, gy * ch, cw + 1, ch + 1);
+    }
+    ctx.restore();
+  }
+
+  // perímetro de lesión
+  if (scan?.contour) {
+    ctx.lineWidth = Math.max(2, w * 0.005);
+    ctx.strokeStyle = '#a78bfa'; ctx.fillStyle = 'rgba(167,139,250,0.12)';
+    ctx.beginPath();
+    scan.contour.forEach((p, i) => { const x = p.x * w, y = p.y * h; i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); });
+    ctx.closePath(); ctx.fill(); ctx.stroke();
+  }
+
+  // wireframes de cabello
+  if (scan?.segments) {
+    ctx.lineWidth = Math.max(1.5, w * 0.004); ctx.lineCap = 'round';
+    ctx.strokeStyle = '#38bdf8';
+    for (const s of scan.segments) {
+      ctx.beginPath(); ctx.moveTo(s.x1 * w, s.y1 * h); ctx.lineTo(s.x2 * w, s.y2 * h); ctx.stroke();
+    }
+  }
+
+  if (marker) {
+    const cx = marker.x * w, cy = marker.y * h, r = Math.max(14, w * 0.025);
+    ctx.lineWidth = Math.max(3, w * 0.006); ctx.strokeStyle = '#ff3b5c';
+    ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.stroke();
+  }
+  return canvas.toDataURL('image/jpeg', 0.85);
+}
+
 export function blobToDataURL(blob) {
   return new Promise((res, rej) => {
     const fr = new FileReader();

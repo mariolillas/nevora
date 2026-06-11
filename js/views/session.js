@@ -88,7 +88,7 @@ export async function renderSession(id) {
     <h3 class="section-title"><span class="step-n">2</span> Imagen micro <small>(zoom dermatoscópico)</small></h3>
     ${photoCard('micro', micro, 'Foto micro', 'Usa el zoom de la cámara sobre la lesión')}
 
-    <h3 class="section-title"><span class="step-n">3</span> Análisis IA <small class="sim">simulado</small></h3>
+    <h3 class="section-title"><span class="step-n">3</span> Análisis IA ${analysis ? (analysis.measured ? '<small class="sim measured">medición real</small>' : '<small class="sim">estimado</small>') : '<small class="sim">visión local</small>'}</h3>
     <div id="analysisArea">${analysisCard}</div>
 
     <h3 class="section-title"><span class="step-n">4</span> Reporte</h3>
@@ -139,7 +139,7 @@ export async function renderSession(id) {
     try {
       scan = await runScanAnimation({ blob: target.blob, type: s.type });
     } catch (e) { console.error(e); }
-    const result = runAnalysis(s.type, target);
+    const result = runAnalysis(s.type, target, scan);
     if (scan) result.scan = scan;
     await db.saveAnalysis({ id: existingId, sessionId: id, photoId: target.id, type: s.type, result });
     toast('Análisis completado', 'success');
@@ -192,6 +192,7 @@ export function renderAnalysisCard(a) {
   }
   return `<div class="analysis-card">
     <div class="analysis-body wide">
+      ${a.measured && a.hairCount != null ? `<div class="hair-count"><b>${a.hairCount}</b> cabellos detectados en el campo</div>` : ''}
       <ul class="kv grid2">
         <li><span>Densidad</span><b>${a.density} /cm²</b></li>
         <li><span>UF</span><b>${a.follicularUnits} /cm²</b></li>
@@ -205,6 +206,7 @@ export function renderAnalysisCard(a) {
           <b>${f.detected ? '●' : '○'} ${esc(f.name)}</b> <span>${f.confidence}%</span>
           <small>${esc(f.note)}</small></div>`).join('')}
       </div>
+      ${a.estimatedScale ? '<p class="muted small scale-note">Densidad y grosor son estimaciones (campo macro asumido ≈ 1.6 cm). Conteo, terminal/vellus y anisotricosis son medidos.</p>' : ''}
     </div>
     <button class="mini-btn full" data-reanalyze>↻ Re-analizar</button>
   </div>`;

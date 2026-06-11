@@ -310,6 +310,7 @@ h1, h2, h3 { font-weight: 700; letter-spacing: -0.01em; }
   color: var(--warn); border: 1px solid rgba(251, 191, 36, 0.4);
   padding: 1px 8px; border-radius: 99px; font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.06em;
 }
+.section-title .sim.measured { color: var(--ok); border-color: rgba(45, 212, 167, 0.45); }
 .step-n {
   width: 22px; height: 22px; border-radius: 8px; flex: none;
   display: inline-flex; align-items: center; justify-content: center; align-self: center;
@@ -615,6 +616,15 @@ h1, h2, h3 { font-weight: 700; letter-spacing: -0.01em; }
 .analysis-body.wide { width: 100%; }
 .risk-line { font-size: 15px; }
 
+.hair-count {
+  display: flex; align-items: baseline; gap: 8px; margin-bottom: 10px;
+  padding: 8px 12px; border-radius: var(--r-sm);
+  background: var(--hair-soft); border: 1px solid rgba(56, 189, 248, 0.3);
+  font-size: 13px; color: var(--muted);
+}
+.hair-count b { color: var(--hair); font-size: 22px; font-weight: 800; }
+.scale-note { margin-top: 10px; line-height: 1.4; }
+
 .kv { list-style: none; margin: 10px 0; display: flex; flex-direction: column; gap: 5px; }
 .kv li { display: flex; justify-content: space-between; gap: 12px; font-size: 13px; border-bottom: 1px dashed var(--line); padding-bottom: 5px; }
 .kv li span { color: var(--muted); }
@@ -801,6 +811,9 @@ h1, h2, h3 { font-weight: 700; letter-spacing: -0.01em; }
 .scan-skip { color: var(--faint); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; }
 
 /* geometría del escáner (SVG) */
+.scan-heat rect, .heat-layer rect { mix-blend-mode: screen; }
+.scan-heat { animation: fadeIn .6s ease both; }
+.result-overlay .heat-layer rect { mix-blend-mode: screen; }
 .scan-contour {
   fill: rgba(167, 139, 250, 0.10); stroke: #a78bfa; stroke-width: 2.5;
   stroke-linejoin: round; vector-effect: non-scaling-stroke;

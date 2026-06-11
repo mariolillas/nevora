@@ -40,6 +40,12 @@ El usuario (Mario, grupomfz.com) trabaja con productos FotoFinder y quiere una a
 - **No usa la cámara del teléfono** → el enfoque de Nevora es distinto y la lógica de Skeen no era reutilizable.
 - APK ya descompilada en: `G:\Mi unidad\Claude\SQL Xpert\skeen_apks\kiosk_decompiled`.
 
+### IA offline embebida en el APK (análisis 2026-06-11)
+- **3 modelos PyTorch cifrados** (~170 MB c/u) en `assets/flutter_assets/assets/`: `mn_220821.pt.ffai` (MoleAnalyzer / AI-Score de nevos), `bm_240418.pt.ffai`, `cm_240328.pt.ffai`, + `model_config.xml.ffai`. Cabecera propietaria **`FFAI`** (FotoFinder AI), datos cifrados; la clave vive en `libffcoreai.so`.
+- **Motor:** `libffcoreai.so`/`-jni.so` = **PyTorch Mobile (TorchScript/LibTorch)** con Vulkan/Metal y **Grad-CAM** (de ahí el mapa de calor de MoleAnalyzer).
+- **Cabello:** `libhair_analyzer_sdk.so` = **OpenCV clásico** (segmentación, LDA terminal/vellus, conteo por contornos, salida SVG con `Terminal:`/`Vellus:`/`Hair Count`/`Hair Thickness`) — **no** deep learning.
+- ⚠️ **Decisión:** los modelos están cifrados a propósito (PI de FotoFinder) y son dispositivo médico regulado → **NO** se descifran ni reutilizan en Nevora (ilegal + riesgo regulatorio). En su lugar se **replicaron las TÉCNICAS de forma legal** con código propio (`js/cv.js`). Vía legítima si se quiere su IA: licencia/SDK con FotoFinder.
+
 ---
 
 ## 3. Nombre y marca
@@ -61,7 +67,7 @@ El usuario (Mario, grupomfz.com) trabaja con productos FotoFinder y quiere una a
 
 | Tema | Decisión | Notas |
 |---|---|---|
-| **Motor de IA (v1)** | **Placeholder simulado** | Etiquetado "no diagnóstico". Resultados estables por foto (hash del id). Listo para conectar IA real. |
+| **Motor de IA (v2)** | **Visión por computadora local + respaldo simulado** | `js/cv.js` MIDE la imagen (ABCD real de lesión; conteo/grosor/terminal-vellus de cabello con técnicas OpenCV propias). Si la imagen no es medible, cae al placeholder simulado estable por foto. Etiquetado "no diagnóstico". |
 | **IA (test)** | **Claude Vision API vía proxy** (siguiente paso) | Opus 4.8 o Sonnet 4.6. Centavos por análisis. Ver §9. |
 | **Almacenamiento** | **Híbrido** | Local primero (IndexedDB) + exportar/importar respaldo `.json`. Drive directo = fase 2. |
 | **Alcance v1** | Flujo completo funcional sin IA real | Pacientes + cámara macro/micro + marcar lesión + sesiones + PDF. |

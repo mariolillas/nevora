@@ -5,7 +5,7 @@
 //     dos columnas A|B con macro/micro, tabla de evolución y veredicto.
 // =====================================================================
 import { CONFIG } from './config.js';
-import { renderWithMarker, blobToDataURL } from './camera.js';
+import { renderWithMarker, renderWithScan, blobToDataURL } from './camera.js';
 
 const COL = {
   bg: '#0e1117', ink: '#1b2330', accent: '#3b82f6',
@@ -132,13 +132,23 @@ export async function generateReport({ patient, session, photos, analyses, clini
   doc.text('Imágenes', M, y); y += 2;
   doc.line(M, y, W - M, y); y += 5;
 
+  // geometría del análisis (perímetro/wireframes) sobre la foto analizada
+  const scanAnalysis = analyses && analyses[0] ? analyses[0].result : null;
+  const scanGeom = scanAnalysis?.scan || null;
+  const scanPhotoId = analyses && analyses[0] ? analyses[0].photoId : null;
+
   const imgW = (W - 2 * M - 8) / 2;
   const imgH = imgW * 0.75;
   async function placeImage(photo, label, x) {
     doc.setFont('helvetica', 'bold'); doc.setFontSize(8.5); doc.setTextColor(COL.sub);
     doc.text(label, x, y);
     if (photo) {
-      const dataURL = await photoDataURL(photo, 1400);
+      let dataURL;
+      if (scanGeom && photo.id === scanPhotoId) {
+        dataURL = await renderWithScan(photo.blob, scanGeom, photo.marker, 1400);
+      } else {
+        dataURL = await photoDataURL(photo, 1400);
+      }
       try {
         doc.addImage(dataURL, 'JPEG', x, y + 1.5, imgW, imgH, undefined, 'FAST');
       } catch (e) { /* imagen inválida: omitir */ }
