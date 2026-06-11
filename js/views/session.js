@@ -28,7 +28,9 @@ export async function renderSession(id) {
   const locOpts = BODY_LOCATIONS.map((l) => `<option ${s.bodyLocation === l ? 'selected' : ''}>${l}</option>`).join('');
 
   // overlay de escaneo persistente sobre la foto que se analizó
+  // (con botón de ojo para mostrar/ocultar; la preferencia se recuerda)
   const an0 = analyses[0];
+  const overlayVisible = localStorage.getItem('nv-overlay-off') !== '1';
   const scanOverlay = (photo) =>
     (an0 && an0.result?.scan && an0.photoId === photo.id)
       ? overlayMarkup(an0.result.scan, photo.width || 100, photo.height || 100)
@@ -39,9 +41,10 @@ export async function renderSession(id) {
       const marked = kind === 'macro' && photo.marker;
       const ov = scanOverlay(photo);
       return `<div class="photo-card filled">
-        <div class="photo-wrap ${ov ? 'has-overlay' : ''}">
+        <div class="photo-wrap ${ov ? 'has-overlay' : ''} ${ov && !overlayVisible ? 'hide-overlay' : ''}">
           <img src="${url(photo.blob)}" alt="${kind}">
           ${ov}
+          ${ov ? `<button class="eye-btn" data-eye title="Mostrar/ocultar perímetro">${overlayVisible ? ICON.eye : ICON.eyeOff}</button>` : ''}
           ${marked ? `<span class="pin" style="left:${photo.marker.x * 100}%;top:${photo.marker.y * 100}%"></span>` : ''}
           ${kind === 'macro' ? `<button class="mark-btn ${photo.marker ? 'done' : ''}" data-mark="${photo.id}">${photo.marker ? '✓ Lesión marcada' : '＋ Marcar lesión'}</button>` : ''}
         </div>
@@ -112,6 +115,14 @@ export async function renderSession(id) {
   // marcar lesión
   const markBtn = $('[data-mark]');
   if (markBtn) markBtn.addEventListener('click', () => openMarker(markBtn.getAttribute('data-mark')));
+
+  // ojo: mostrar/ocultar el perímetro/wireframe sobre la foto analizada
+  $all('[data-eye]').forEach((b) => b.addEventListener('click', () => {
+    const wrap = b.closest('.photo-wrap');
+    const hidden = wrap.classList.toggle('hide-overlay');
+    b.innerHTML = hidden ? ICON.eyeOff : ICON.eye;
+    localStorage.setItem('nv-overlay-off', hidden ? '1' : '0');
+  }));
 
   // borrar foto
   $all('[data-delphoto]').forEach((b) => b.addEventListener('click', async () => {
