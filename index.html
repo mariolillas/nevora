@@ -16,7 +16,7 @@
 </head>
 <body>
   <div id="app">
-    <div class="splash" id="splash">
+    <div class="splash cine" id="splash">
       <div class="splash-glow"></div>
       <div class="splash-particles" aria-hidden="true">
         <span></span><span></span><span></span><span></span><span></span>
@@ -39,15 +39,6 @@
       <p class="splash-tag">Dermatoscopía digital</p>
     </div>
   </div>
-  <script>
-    // Intro cinemática SOLO en la primera apertura (flag local).
-    try {
-      if (!localStorage.getItem('nv-intro-seen')) {
-        document.getElementById('splash').classList.add('cine');
-        localStorage.setItem('nv-intro-seen', '1');
-      }
-    } catch (e) {}
-  </script>
   <script type="module" src="js/app.js"></script>
 </body>
 </html>

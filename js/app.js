@@ -50,16 +50,20 @@ async function render() {
 setRenderer(render);
 window.addEventListener('hashchange', render);
 
-// Arranque: deja terminar la animación del splash (solo en la carga
-// inicial) y haz un fade-out antes del primer render. La intro
-// cinemática (clase .cine, primera apertura) dura más.
+// Arranque: la intro cinemática se reproduce en CADA apertura de la
+// app; un toque en la pantalla la salta. Fade-out antes del render.
 const bootStart = Date.now();
 db.openDB().then(async () => {
   const splash = document.getElementById('splash');
   if (splash) {
     const min = splash.classList.contains('cine') ? 5300 : 1900;
     const left = min - (Date.now() - bootStart);
-    if (left > 0) await new Promise((r) => setTimeout(r, left));
+    if (left > 0) {
+      await new Promise((r) => {
+        const t = setTimeout(r, left);
+        splash.addEventListener('pointerdown', () => { clearTimeout(t); r(); }, { once: true });
+      });
+    }
     splash.classList.add('out');
     await new Promise((r) => setTimeout(r, 420));
   }
