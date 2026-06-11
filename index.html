@@ -16,7 +16,23 @@
 </head>
 <body>
   <div id="app">
-    <div class="boot"><span class="logo-dot"></span><p>Cargando Nevora…</p></div>
+    <div class="splash" id="splash">
+      <div class="splash-glow"></div>
+      <svg class="splash-logo" viewBox="0 0 120 120" aria-hidden="true">
+        <defs>
+          <linearGradient id="nv-grad" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stop-color="#4f7dff"/>
+            <stop offset="1" stop-color="#7c5bff"/>
+          </linearGradient>
+        </defs>
+        <circle class="sp-halo" cx="60" cy="60" r="54"/>
+        <circle class="sp-ring" cx="60" cy="60" r="44"/>
+        <circle class="sp-tick" cx="60" cy="60" r="44"/>
+        <circle class="sp-dot" cx="60" cy="60" r="9"/>
+      </svg>
+      <h1 class="splash-name">Nevora</h1>
+      <p class="splash-tag">Dermatoscopía digital</p>
+    </div>
   </div>
   <script type="module" src="js/app.js"></script>
 </body>
