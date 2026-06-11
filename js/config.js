@@ -6,9 +6,9 @@ export const CONFIG = {
   APP_NAME: 'Nevora',
   APP_SHORT: 'Nevora',
   APP_TAGLINE: 'Dermatoscopía digital · Lesiones y Tricoscopía',
-  VERSION: '1.0.0',
+  VERSION: '2.0.0',
   DB_NAME: 'nevora-db',
-  DB_VERSION: 1,
+  DB_VERSION: 2,
   // Texto legal que aparece en pantalla y en los reportes PDF.
   DISCLAIMER:
     'Los resultados de IA son ASISTENCIALES y NO constituyen un diagnóstico médico. ' +

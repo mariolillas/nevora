@@ -3,7 +3,8 @@
 > Documento de referencia completo del proyecto. Sirve como **spec para el rediseño** y para retomar el contexto en cualquier sesión nueva (incluido un rediseño profundo con Fable 5).
 >
 > Ubicación del proyecto: `G:\Mi unidad\Claude\MarioFinder app`
-> Última actualización del plan: 2026-06-11 · Versión app: 1.0.0 (MVP)
+> Repo: https://github.com/mariolillas/nevora · App: https://mariolillas.github.io/nevora/
+> Última actualización del plan: 2026-06-11 · Versión app: 2.0.0 (rediseño + seguimiento §6.1)
 
 ---
 
@@ -165,12 +166,16 @@ css/styles.css          · tema oscuro premium
 icons/                  · iconos 192/512
 js/
   config.js   · APP_NAME, textos, listas (país, localización)   ← renombrar app aquí
-  db.js       · IndexedDB (pacientes, sesiones, fotos, análisis, ajustes)
+  db.js       · IndexedDB v2 (pacientes, lesions, sesiones, fotos, análisis, ajustes)
+                + migración automática v1→v2 (agrupa sesiones en lesiones)
   camera.js   · captura nativa, compresión, miniaturas, marcador
   ai.js       · análisis SIMULADO (lesión y cabello)   ← conectar IA real aquí
-  pdf.js      · reportes PDF
+  evolution.js· deltas A→B entre visitas + veredicto de evolución (§6.1)
+  pdf.js      · reporte de visita + reporte de COMPARACIÓN (2 columnas)
   backup.js   · exportar/importar respaldo
-  app.js      · interfaz, router y flujo
+  ui.js       · helpers de UI (chrome, iconos, toasts, modales, sheets)
+  views/      · home, patient, lesion, session, compare, settings
+  app.js      · router por hash + registro SW (aviso de actualización)
 README.md     · guía de despliegue
 PLAN.md       · este documento
 ```
@@ -258,13 +263,22 @@ Prueba local: `python -m http.server 8080` dentro de la carpeta (los ES modules 
 
 ## 13. Estado actual
 
-✅ **Implementado y verificado (v1 MVP):** los 7 módulos JS compilan sin errores; el motor de IA simulada produce resultados válidos y estables; iconos generados; PWA configurada; renombrado a **Nevora** en todo el código.
+✅ **v2.0.0 — rediseño completo (Fable 5) implementado:**
+- **Identidad de lesión (§6.1):** store `lesions` + `sessions.lesionId` (DB v2) con **migración
+  automática** de datos v1 (agrupa sesiones por paciente+tipo+localización; también al importar
+  respaldos v1). Jerarquía Paciente → Lesión → línea de tiempo de visitas.
+- **Pantalla de comparación** por lesión y ad-hoc: macro/micro A|B con marcadores, tabla de
+  deltas, veredicto de evolución (estable / menores / atención) y sparkline de AI-Score.
+- **Reporte PDF de comparación** a dos columnas con tabla de evolución y veredicto.
+- **UI premium:** design system con tokens, glass topbar, anillos de score, timeline,
+  microinteracciones, estados vacíos, bottom sheets, lightbox, toast de "nueva versión".
+- Código reestructurado: `ui.js` + `views/*` + `evolution.js`; SW cache `nevora-v2`.
+- Publicado en GitHub Pages: https://mariolillas.github.io/nevora/
 
 ⏳ **Pendiente:**
 - Conectar **Claude Vision** real (proxy + reemplazo en `ai.js`).
 - Probar en teléfono real vía GitHub Pages.
 - Búsqueda formal de marca **Nevora** (IMPI/USPTO) + dominio.
-- **Rediseño completo en Fable 5** (ver §14).
 
 ---
 

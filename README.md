@@ -9,10 +9,14 @@ Inspirada en el flujo de MoleAnalyzer (lesiones) y TrichoScale (tricoscopía).
 
 ---
 
-## ✨ Qué hace (v1)
+## ✨ Qué hace (v2)
 
 - **Pacientes**: nombre, apellidos, fecha de nacimiento, sexo, país, altura, notas.
-- **Sesiones** por paciente, de dos tipos:
+- **Seguimiento por lesión** (§6.1): cada paciente tiene **lesiones / zonas** con identidad
+  persistente que acumulan una **línea de tiempo de visitas**.
+- **Comparación lado a lado** de dos visitas (macro/micro A|B, tabla de deltas y veredicto de
+  evolución) + **reporte PDF de comparación** a dos columnas.
+- **Visitas** por lesión, de dos tipos:
   - 🔬 **Lesión / Nevo** → AI-Score de malignidad (0–100) + reglas ABCD + recomendación.
   - 💇 **Cabello / Tricoscopía** → densidad, cabellos por folículo, alopecia areata,
     dermatitis seborreica, patrón androgenético.
@@ -76,12 +80,15 @@ css/styles.css          · tema oscuro premium
 icons/                  · iconos 192/512
 js/
   config.js   · nombre de la app, textos, listas (país, localización)  ← renombrar aquí
-  db.js       · IndexedDB (pacientes, sesiones, fotos, análisis)
+  db.js       · IndexedDB v2 (pacientes, lesiones, sesiones, fotos, análisis) + migración
+  evolution.js· deltas entre visitas + veredicto de evolución
+  ui.js       · helpers de UI (chrome, toasts, modales, sheets)
+  views/      · pantallas (home, paciente, lesión, sesión, comparación, ajustes)
   camera.js   · captura nativa, compresión, miniaturas, marcador
   ai.js       · análisis SIMULADO (lesión y cabello)   ← conectar IA real aquí
   pdf.js      · reportes PDF
   backup.js   · exportar/importar respaldo
-  app.js      · interfaz, router y flujo
+  app.js      · router + registro del service worker
 ```
 
 ## 🔧 Personalizar
@@ -94,6 +101,5 @@ js/
 ## 🛣️ Próximos pasos sugeridos (fase 2)
 
 - IA real (modelo en navegador o API de visión con backend).
-- Comparación temporal de la misma lesión (seguimiento / *body mapping*).
 - Sincronización en la nube y login (Supabase/Firebase) con consentimiento del paciente.
 - Integración directa con Google Drive para respaldos automáticos.

@@ -1,17 +1,25 @@
 // Service worker — cache del app shell para uso offline.
 // Sube CACHE cada vez que cambies archivos para forzar actualización.
-const CACHE = 'nevora-v1';
+const CACHE = 'nevora-v2';
 const ASSETS = [
   './',
   './index.html',
   './css/styles.css',
   './js/app.js',
+  './js/ui.js',
   './js/config.js',
   './js/db.js',
   './js/ai.js',
   './js/camera.js',
   './js/pdf.js',
   './js/backup.js',
+  './js/evolution.js',
+  './js/views/home.js',
+  './js/views/patient.js',
+  './js/views/lesion.js',
+  './js/views/session.js',
+  './js/views/compare.js',
+  './js/views/settings.js',
   './manifest.webmanifest',
   './icons/icon-192.png',
   './icons/icon-512.png',
