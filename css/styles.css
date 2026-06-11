@@ -150,6 +150,49 @@ h1, h2, h3 { font-weight: 700; letter-spacing: -0.01em; }
   animation: fadeUp .7s ease 1.05s both;
 }
 
+/* elementos exclusivos de la intro cinemática (primera apertura) */
+.splash-particles { display: none; }
+.sp-wave { display: none; }
+
+.splash.cine .splash-particles { display: block; position: absolute; inset: 0; pointer-events: none; }
+.splash.cine .splash-particles span {
+  position: absolute; width: 4px; height: 4px; border-radius: 50%;
+  background: #8b9bff; opacity: 0;
+  box-shadow: 0 0 9px rgba(124, 140, 255, 0.85);
+  animation: partFloat 4.4s ease-in-out infinite;
+}
+.splash.cine .splash-particles span:nth-child(1) { left: 26%; top: 30%; animation-delay: .3s; }
+.splash.cine .splash-particles span:nth-child(2) { left: 70%; top: 26%; animation-delay: 1.1s; width: 3px; height: 3px; }
+.splash.cine .splash-particles span:nth-child(3) { left: 18%; top: 56%; animation-delay: .7s; }
+.splash.cine .splash-particles span:nth-child(4) { left: 80%; top: 52%; animation-delay: 1.6s; }
+.splash.cine .splash-particles span:nth-child(5) { left: 36%; top: 68%; animation-delay: 2.1s; width: 3px; height: 3px; }
+.splash.cine .splash-particles span:nth-child(6) { left: 62%; top: 70%; animation-delay: .5s; }
+.splash.cine .splash-particles span:nth-child(7) { left: 12%; top: 40%; animation-delay: 2.6s; width: 5px; height: 5px; }
+.splash.cine .splash-particles span:nth-child(8) { left: 86%; top: 38%; animation-delay: 1.9s; }
+.splash.cine .splash-particles span:nth-child(9) { left: 46%; top: 22%; animation-delay: 2.4s; width: 3px; height: 3px; }
+.splash.cine .splash-particles span:nth-child(10) { left: 56%; top: 80%; animation-delay: 1.3s; }
+
+.splash.cine .sp-wave {
+  display: block;
+  stroke: rgba(124, 107, 255, 0.65); stroke-width: 2;
+  transform-origin: 60px 60px; opacity: 0;
+  animation: waveOut 1.3s cubic-bezier(.2, .6, .3, 1) 2.45s both;
+}
+
+/* coreografía extendida (~5 s) */
+.splash.cine .splash-glow { animation-duration: 2.4s; }
+.splash.cine .sp-halo { animation-duration: 1.8s; }
+.splash.cine .sp-ring { animation: ringDraw 2.1s cubic-bezier(.6, 0, .25, 1) .4s both; }
+.splash.cine .sp-dot { animation: dotIn .6s cubic-bezier(.2, .8, .3, 1.4) 2.25s both, dotBeat 2.2s ease-in-out 3.1s infinite; }
+.splash.cine .sp-tick { animation: tickSpin 2.4s linear 3s infinite, fadeIn .4s ease 3s both; }
+.splash.cine .splash-name {
+  background: linear-gradient(110deg, #e8edf7 42%, #ffffff 50%, #aebcff 53%, #e8edf7 60%);
+  background-size: 240% 100%; background-position: 120% 0;
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+  animation: nameIn 1s cubic-bezier(.2, .7, .3, 1) 2.55s both, nameShine 1.5s ease 3.6s both;
+}
+.splash.cine .splash-tag { animation: fadeUp .8s ease 3.25s both; }
+
 @keyframes ringDraw { to { stroke-dashoffset: 0; } }
 @keyframes haloIn { from { opacity: 0; transform: scale(0.7); } to { opacity: 1; transform: scale(1); } }
 @keyframes tickSpin { from { transform: rotate(-90deg); } to { transform: rotate(270deg); } }
@@ -158,6 +201,14 @@ h1, h2, h3 { font-weight: 700; letter-spacing: -0.01em; }
 @keyframes glowIn { from { opacity: 0; transform: scale(0.6); } to { opacity: 1; transform: scale(1); } }
 @keyframes nameIn { from { opacity: 0; transform: translateY(14px); letter-spacing: 0.45em; } to { opacity: 1; transform: none; letter-spacing: 0.02em; } }
 @keyframes fadeUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+@keyframes waveOut { 0% { opacity: 0.9; transform: scale(0.25); } 100% { opacity: 0; transform: scale(2.4); } }
+@keyframes partFloat {
+  0% { opacity: 0; transform: translateY(16px); }
+  30% { opacity: 0.85; }
+  65% { opacity: 0.3; }
+  100% { opacity: 0; transform: translateY(-44px); }
+}
+@keyframes nameShine { from { background-position: 120% 0; } to { background-position: -60% 0; } }
 
 .logo-dot {
   width: 14px; height: 14px; border-radius: 50%;
