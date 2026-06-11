@@ -6,6 +6,7 @@ import { CONFIG, BODY_LOCATIONS } from '../config.js';
 import * as db from '../db.js';
 import { captureFromCamera, compressImage, makeThumb } from '../camera.js';
 import { runAnalysis } from '../ai.js';
+import { runScanAnimation, overlayMarkup } from '../scan.js';
 import { downloadReport } from '../pdf.js';
 import {
   chrome, ICON, esc, url, $, $all, initials, fmtDate,
@@ -26,12 +27,21 @@ export async function renderSession(id) {
 
   const locOpts = BODY_LOCATIONS.map((l) => `<option ${s.bodyLocation === l ? 'selected' : ''}>${l}</option>`).join('');
 
+  // overlay de escaneo persistente sobre la foto que se analizó
+  const an0 = analyses[0];
+  const scanOverlay = (photo) =>
+    (an0 && an0.result?.scan && an0.photoId === photo.id)
+      ? overlayMarkup(an0.result.scan, photo.width || 100, photo.height || 100)
+      : '';
+
   function photoCard(kind, photo, title, hint) {
     if (photo) {
       const marked = kind === 'macro' && photo.marker;
+      const ov = scanOverlay(photo);
       return `<div class="photo-card filled">
-        <div class="photo-wrap">
+        <div class="photo-wrap ${ov ? 'has-overlay' : ''}">
           <img src="${url(photo.blob)}" alt="${kind}">
+          ${ov}
           ${marked ? `<span class="pin" style="left:${photo.marker.x * 100}%;top:${photo.marker.y * 100}%"></span>` : ''}
           ${kind === 'macro' ? `<button class="mark-btn ${photo.marker ? 'done' : ''}" data-mark="${photo.id}">${photo.marker ? '✓ Lesión marcada' : '＋ Marcar lesión'}</button>` : ''}
         </div>
@@ -109,15 +119,18 @@ export async function renderSession(id) {
     rerender();
   }));
 
-  // analizar / re-analizar
+  // analizar / re-analizar: escáner visual (segmenta la imagen y anima
+  // el progreso); la geometría detectada se guarda con el resultado.
   async function analyze(existingId) {
     const target = micro || macro;
     if (!target) return;
-    const close = spinner('Analizando imagen…');
-    await new Promise((r) => setTimeout(r, 900)); // simula procesamiento
+    let scan = null;
+    try {
+      scan = await runScanAnimation({ blob: target.blob, type: s.type });
+    } catch (e) { console.error(e); }
     const result = runAnalysis(s.type, target);
+    if (scan) result.scan = scan;
     await db.saveAnalysis({ id: existingId, sessionId: id, photoId: target.id, type: s.type, result });
-    close();
     toast('Análisis completado', 'success');
     rerender();
   }
