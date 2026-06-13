@@ -5,6 +5,8 @@
 // =====================================================================
 import { BODY_LOCATIONS } from '../config.js';
 import * as db from '../db.js';
+import { bodyMapMarkup, wireBodyMap } from '../bodymap.js';
+import { CONTROL_INTERVALS, addMonths } from '../worklist.js';
 import {
   chrome, ICON, esc, $, $all, fmtDate, toast, confirmDialog, go,
 } from '../ui.js';
@@ -31,9 +33,21 @@ export async function renderLesionForm(lesionId, patientId) {
       <label>Nombre de la lesión / zona
         <input name="label" value="${esc(l.label || '')}" placeholder="Ej. Nevo espalda alta" required>
       </label>
-      <label>Localización en el cuerpo
-        <select name="bodyLocation"><option value="">—</option>${locOpts}</select>
-      </label>
+
+      <span class="form-label">Localización en el cuerpo</span>
+      ${bodyMapMarkup(l.bodyLocation || '')}
+      <select name="bodyLocation" id="locSelect" hidden><option value="">—</option>${locOpts}</select>
+      <details class="loc-fallback"><summary>Elegir de una lista</summary>
+        <div id="locListWrap"></div>
+      </details>
+
+      <span class="form-label">Próximo control</span>
+      <div class="control-pick" id="controlPick">
+        ${CONTROL_INTERVALS.map((iv) => `<button type="button" class="chip-btn" data-months="${iv.months}">${iv.label}</button>`).join('')}
+        <button type="button" class="chip-btn" data-months="0">Sin fecha</button>
+      </div>
+      <input type="date" id="nextControl" value="${l.nextControl ? new Date(l.nextControl).toISOString().slice(0, 10) : ''}">
+
       <button class="btn btn-primary btn-block" type="submit">${lesionId ? 'Guardar' : 'Crear y abrir'}</button>
       ${lesionId ? `<button class="btn btn-danger-ghost btn-block" type="button" data-del>Eliminar lesión y sus visitas</button>` : ''}
     </form>
@@ -45,10 +59,31 @@ export async function renderLesionForm(lesionId, patientId) {
     $all('[data-type]').forEach((x) => x.classList.toggle('selected', x === b));
   }));
 
+  // mapa corporal → escribe en el <select name="bodyLocation">
+  const locSelect = $('#locSelect');
+  wireBodyMap($('#lform'), (loc) => { locSelect.value = loc; });
+  // lista de respaldo (mueve el select a un lugar visible al expandir)
+  $('#locListWrap').appendChild(locSelect);
+  locSelect.hidden = false;
+  locSelect.addEventListener('change', () => {
+    // sincroniza el mapa con la lista
+    $all('.bm-zone').forEach((z) => z.classList.toggle('active', z.getAttribute('data-loc') === locSelect.value));
+    const lbl = $('.bm-selected'); if (lbl && locSelect.value) lbl.textContent = `📍 ${locSelect.value}`;
+  });
+
+  // próximo control: chips de intervalo + fecha manual
+  const dateInput = $('#nextControl');
+  $all('[data-months]').forEach((b) => b.addEventListener('click', () => {
+    const m = +b.getAttribute('data-months');
+    $all('[data-months]').forEach((x) => x.classList.toggle('active', x === b));
+    dateInput.value = m ? new Date(addMonths(Date.now(), m)).toISOString().slice(0, 10) : '';
+  }));
+
   $('#lform').addEventListener('submit', async (e) => {
     e.preventDefault();
     const data = Object.fromEntries(new FormData(e.target).entries());
-    const saved = await db.saveLesion({ ...l, ...data, type, patientId: pid });
+    const nextControl = dateInput.value ? new Date(dateInput.value).getTime() : null;
+    const saved = await db.saveLesion({ ...l, ...data, type, patientId: pid, nextControl });
     toast(lesionId ? 'Lesión guardada' : 'Lesión creada', 'success');
     go(`/lesion/${saved.id}`);
   });
@@ -99,6 +134,15 @@ export async function renderLesion(id) {
        <p>Aún no hay visitas. Captura la primera para iniciar el seguimiento.</p>
      </div>`;
 
+  // chip de próximo control
+  let controlChip = '';
+  if (l.nextControl) {
+    const days = Math.round((l.nextControl - Date.now()) / 86400000);
+    const cls = days < 0 ? 'overdue' : (days <= 14 ? 'soon' : 'ok');
+    const txt = days < 0 ? `Control vencido (${-days}d)` : (days === 0 ? 'Control hoy' : `Próximo control en ${days}d`);
+    controlChip = `<span class="control-chip ${cls}">${ICON.calendar} ${txt} · ${fmtDate(l.nextControl)}</span>`;
+  }
+
   chrome(l.label, `
     <div class="lesion-head">
       <span class="lesion-icon big ${l.type}">${l.type === 'hair' ? ICON.hair : ICON.target}</span>
@@ -108,6 +152,7 @@ export async function renderLesion(id) {
       </div>
       <button class="icon-btn" data-go="/lesion/${id}/edit">${ICON.edit}</button>
     </div>
+    ${controlChip}
 
     ${scores.length >= 2 ? `
     <div class="spark-card">

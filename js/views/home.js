@@ -3,11 +3,34 @@
 // =====================================================================
 import { CONFIG } from '../config.js';
 import * as db from '../db.js';
+import { buildWorklist } from '../worklist.js';
 import { chrome, ICON, esc, $, $all, age, initials } from '../ui.js';
+
+const REASON_CLS = { overdue: 'r-overdue', worsening: 'r-worsening', high: 'r-high', soon: 'r-soon' };
 
 export async function renderHome() {
   const patients = await db.listPatients();
   const st = await db.stats();
+  const worklist = patients.length ? await buildWorklist() : [];
+
+  // sección "Requiere atención" (cross-paciente)
+  const attention = worklist.length ? `
+    <div class="attention-block">
+      <h3 class="section-title attn-title">⚠ Requiere atención <span class="attn-count">${worklist.length}</span></h3>
+      <div class="list">
+        ${worklist.slice(0, 8).map((w) => `
+          <button class="attn-row card-press" data-go="/lesion/${w.lesionId}">
+            <span class="lesion-icon ${w.type}">${w.type === 'hair' ? ICON.hair : ICON.target}</span>
+            <span class="attn-info">
+              <span class="attn-label">${esc(w.label)}</span>
+              <span class="attn-sub">${esc(w.patientName)}${w.bodyLocation ? ' · ' + esc(w.bodyLocation) : ''}</span>
+              <span class="attn-reasons">${w.reasons.map((r) => `<span class="attn-tag ${REASON_CLS[r.type] || ''}">${esc(r.text)}</span>`).join('')}</span>
+            </span>
+            <span class="chev">${ICON.chev}</span>
+          </button>`).join('')}
+      </div>
+      ${worklist.length > 8 ? `<p class="muted small center">y ${worklist.length - 8} más…</p>` : ''}
+    </div>` : '';
 
   const cards = patients.length ? patients.map((p) => `
     <button class="patient-row card-press" data-go="/patient/${p.id}">
@@ -36,6 +59,8 @@ export async function renderHome() {
       </div>` : ''}
       <div class="search-wrap">${ICON.search}<input class="search" id="search" placeholder="Buscar paciente…" autocomplete="off"></div>
     </div>
+    ${attention}
+    ${worklist.length ? '<h3 class="section-title">Pacientes</h3>' : ''}
     <div class="list" id="list">${cards}</div>
   `, { actionIcon: 'cog', actionHash: '/settings', fab: patients.length ? { hash: '/patient/new', label: 'Nuevo paciente' } : null });
 
