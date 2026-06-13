@@ -107,6 +107,57 @@ function mean(a) { return a.length ? a.reduce((s, x) => s + x, 0) / a.length : 0
 function std(a) { const m = mean(a); return a.length ? Math.sqrt(mean(a.map((x) => (x - m) * (x - m)))) : 0; }
 
 // =====================================================================
+// CALIDAD DE IMAGEN (post-captura) — nitidez (varianza del Laplaciano)
+// + exposición/recorte. Devuelve veredicto asistencial good/fair/poor.
+// =====================================================================
+export async function assessQuality(blob) {
+  const img = await loadImage(blob);
+  const { lum, w, h } = imageMaps(img, 256);
+
+  // nitidez: varianza del Laplaciano
+  let s = 0, s2 = 0, n = 0;
+  for (let y = 1; y < h - 1; y++) {
+    for (let x = 1; x < w - 1; x++) {
+      const i = y * w + x;
+      const lap = lum[i - 1] + lum[i + 1] + lum[i - w] + lum[i + w] - 4 * lum[i];
+      s += lap; s2 += lap * lap; n++;
+    }
+  }
+  const sharpness = n ? (s2 / n - (s / n) * (s / n)) : 0;
+
+  // exposición y recorte
+  let mean = 0, dark = 0, bright = 0;
+  const N = w * h;
+  for (let i = 0; i < N; i++) {
+    mean += lum[i];
+    if (lum[i] < 18) dark++;
+    if (lum[i] > 238) bright++;
+  }
+  mean /= N;
+  const darkPct = (dark / N) * 100, brightPct = (bright / N) * 100;
+
+  const reasons = [];
+  const blurry = sharpness < 70;
+  const softFocus = sharpness < 170;
+  if (blurry) reasons.push('Imagen borrosa');
+  else if (softFocus) reasons.push('Enfoque mejorable');
+  if (mean < 50) reasons.push('Poca luz');
+  else if (mean > 208) reasons.push('Sobreexpuesta');
+  if (darkPct > 35) reasons.push('Zonas muy oscuras');
+  if (brightPct > 12) reasons.push('Reflejos / brillos');
+
+  let verdict = 'good';
+  if (blurry || mean < 42 || mean > 218 || brightPct > 22) verdict = 'poor';
+  else if (softFocus || reasons.length) verdict = 'fair';
+
+  return {
+    verdict, reasons,
+    sharpness: Math.round(sharpness), meanLum: Math.round(mean),
+    darkPct: Math.round(darkPct), brightPct: Math.round(brightPct),
+  };
+}
+
+// =====================================================================
 // LESIÓN — segmentación + ABCD real + saliencia
 // =====================================================================
 const SCALE_LESION = 256;

@@ -5,6 +5,7 @@
 import { CONFIG, BODY_LOCATIONS } from '../config.js';
 import * as db from '../db.js';
 import { captureFromCamera, compressImage, makeThumb } from '../camera.js';
+import { assessQuality } from '../cv.js';
 import { runAnalysis } from '../ai.js';
 import { runScanAnimation, overlayMarkup } from '../scan.js';
 import { downloadReport } from '../pdf.js';
@@ -12,6 +13,12 @@ import {
   chrome, ICON, esc, url, $, $all, initials, fmtDate,
   toast, confirmDialog, spinner, go, rerender,
 } from '../ui.js';
+
+const QUALITY = {
+  good: { label: 'Calidad buena', cls: 'q-good' },
+  fair: { label: 'Calidad regular', cls: 'q-fair' },
+  poor: { label: 'Calidad baja', cls: 'q-poor' },
+};
 
 export async function renderSession(id) {
   const s = await db.getSession(id);
@@ -46,6 +53,7 @@ export async function renderSession(id) {
           ${ov}
           ${ov ? `<button class="eye-btn" data-eye title="Mostrar/ocultar perímetro">${overlayVisible ? ICON.eye : ICON.eyeOff}</button>` : ''}
           ${marked ? `<span class="pin" style="left:${photo.marker.x * 100}%;top:${photo.marker.y * 100}%"></span>` : ''}
+          ${photo.quality && photo.quality.verdict !== 'good' ? `<span class="q-badge corner ${QUALITY[photo.quality.verdict].cls}" title="${esc(photo.quality.reasons.join(' · '))}">${QUALITY[photo.quality.verdict].label}</span>` : ''}
           ${kind === 'macro' ? `<button class="mark-btn ${photo.marker ? 'done' : ''}" data-mark="${photo.id}">${photo.marker ? '✓ Lesión marcada' : '＋ Marcar lesión'}</button>` : ''}
         </div>
         <div class="photo-foot">
@@ -212,19 +220,51 @@ export function renderAnalysisCard(a) {
   </div>`;
 }
 
-// captura una foto, la comprime y la guarda
+// captura una foto, la comprime, evalúa su calidad y la guarda
 async function capturePhoto(sessionId, kind, replaceId) {
   const file = await captureFromCamera();
   if (!file) return;
-  const close = spinner('Guardando imagen…');
+  const close = spinner('Procesando imagen…');
   try {
     const { blob, width, height } = await compressImage(file, kind === 'micro' ? 2400 : 2000);
     const thumb = await makeThumb(blob);
+    const quality = await assessQuality(blob).catch(() => null);
+    close();
+
+    // aviso de calidad (asistencial, no bloquea): permite repetir o conservar
+    if (quality && quality.verdict !== 'good') {
+      const action = await qualityDialog(quality, url(blob));
+      if (action === 'retake') { capturePhoto(sessionId, kind, replaceId); return; }
+    }
+    const close2 = spinner('Guardando imagen…');
     if (replaceId) await db.deletePhoto(replaceId);
-    await db.savePhoto({ sessionId, kind, blob, thumb, width, height, marker: null });
+    await db.savePhoto({ sessionId, kind, blob, thumb, width, height, marker: null, quality });
+    close2();
     toast('Imagen guardada', 'success');
-  } catch (e) { console.error(e); toast('Error con la imagen', 'error'); }
-  finally { close(); rerender(); }
+    rerender();
+  } catch (e) { console.error(e); close(); toast('Error con la imagen', 'error'); rerender(); }
+}
+
+// diálogo de calidad: muestra la miniatura, el veredicto y los motivos
+function qualityDialog(quality, previewUrl) {
+  return new Promise((resolve) => {
+    const q = QUALITY[quality.verdict] || QUALITY.fair;
+    const wrap = document.createElement('div');
+    wrap.className = 'modal-backdrop show';
+    wrap.innerHTML = `<div class="modal quality-modal">
+      <div class="qm-preview"><img src="${previewUrl}" alt=""><span class="q-badge ${q.cls}">${q.label}</span></div>
+      <p class="qm-reasons">${quality.reasons.map((r) => `<span>${esc(r)}</span>`).join('')}</p>
+      <p class="muted small">Una buena toma mejora el análisis. Puedes repetirla o conservarla igualmente.</p>
+      <div class="modal-actions">
+        <button class="btn btn-outline" data-keep>Conservar</button>
+        <button class="btn btn-primary" data-retake>↻ Repetir</button>
+      </div></div>`;
+    document.body.appendChild(wrap);
+    wrap.addEventListener('click', (e) => {
+      if (e.target.closest('[data-keep]')) { wrap.remove(); resolve('keep'); }
+      if (e.target.closest('[data-retake]')) { wrap.remove(); resolve('retake'); }
+    });
+  });
 }
 
 // editor de marcador de lesión sobre la macro

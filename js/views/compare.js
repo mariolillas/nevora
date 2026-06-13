@@ -77,6 +77,43 @@ export async function renderCompare({ lesionId, patientId, q }) {
       <div class="cmp-pair">${cell(pa, 'A')}${cell(pb, 'B')}</div>`;
   }
 
+  // ----- superposición A/B (cortina + rotación de B) -----
+  // kinds disponibles en AMBAS visitas (para superponer hace falta par).
+  const overlayKinds = ['macro', 'micro'].filter((k) =>
+    photosA.find((x) => x.kind === k) && photosB.find((x) => x.kind === k));
+  const defKind = overlayKinds[0] || null;
+
+  function overlayTool() {
+    if (!defKind) return '';
+    const chips = overlayKinds.length > 1
+      ? `<div class="ov-kinds">${overlayKinds.map((k, i) =>
+          `<button data-ovkind="${k}" class="${i === 0 ? 'active' : ''}">${k === 'macro' ? 'Macro' : 'Micro'}</button>`).join('')}</div>`
+      : '';
+    return `
+      <div class="ov-toggle">
+        <button data-mode="side" class="active">Lado a lado</button>
+        <button data-mode="over">Superponer A/B</button>
+      </div>
+      <div class="overlay-tool" id="ovTool" hidden>
+        ${chips}
+        <div class="ov-stage" id="ovStage">
+          <span class="ov-tag a">A</span><span class="ov-tag b">B</span>
+          <img class="ov-a" id="ovA" alt="">
+          <img class="ov-b" id="ovB" alt="">
+          <div class="ov-handle" id="ovHandle"></div>
+        </div>
+        <div class="ov-controls">
+          <div class="ov-row"><label>Cortina A | B
+            <input type="range" id="ovCurtain" min="0" max="100" value="50"></label></div>
+          <div class="ov-row">
+            <label>Rotación de B
+              <input type="range" id="ovRot" min="-15" max="15" step="0.5" value="0"></label>
+            <button class="mini-btn ov-align" id="ovAlign">Original</button>
+          </div>
+        </div>
+      </div>`;
+  }
+
   // ----- tabla de deltas -----
   let deltaTable = '';
   if (!sameType) {
@@ -120,8 +157,11 @@ export async function renderCompare({ lesionId, patientId, q }) {
       <label>Visita B <select id="selB">${opts(sB)}</select></label>
     </div>
 
-    ${imgPair('macro', 'Macro · panorámica')}
-    ${imgPair('micro', 'Micro · dermatoscopía')}
+    <div id="sideView">
+      ${imgPair('macro', 'Macro · panorámica')}
+      ${imgPair('micro', 'Micro · dermatoscopía')}
+    </div>
+    ${overlayTool()}
 
     <h3 class="section-title">Evolución</h3>
     ${deltaTable}
@@ -145,6 +185,59 @@ export async function renderCompare({ lesionId, patientId, q }) {
     const s = tag === 'A' ? sA : sB;
     lightbox(img.src, `Visita ${tag} · ${kind} · ${fmtDate(s.createdAt)}`);
   }));
+
+  // ----- superposición A/B -----
+  if (defKind) {
+    let curKind = defKind, rot = 0, aligned = false;
+    const sideView = $('#sideView'), ovTool = $('#ovTool');
+    const stage = $('#ovStage'), imgA = $('#ovA'), imgB = $('#ovB'), handle = $('#ovHandle');
+    const curtain = $('#ovCurtain'), rotInput = $('#ovRot'), alignBtn = $('#ovAlign');
+
+    const loadKind = (k) => {
+      curKind = k;
+      const pa = photosA.find((x) => x.kind === k), pb = photosB.find((x) => x.kind === k);
+      imgA.src = url(pa.blob); imgB.src = url(pb.blob);
+    };
+    const applyRot = () => { imgB.style.transform = `rotate(${aligned ? rot : 0}deg)`; };
+    const setCurtain = (v) => { stage.style.setProperty('--c', v + '%'); handle.style.left = v + '%'; };
+
+    loadKind(curKind);
+    setCurtain(50);
+
+    // modo lado a lado / superponer
+    $all('[data-mode]').forEach((b) => b.addEventListener('click', () => {
+      const over = b.getAttribute('data-mode') === 'over';
+      $all('[data-mode]').forEach((x) => x.classList.toggle('active', x === b));
+      ovTool.hidden = !over;
+      sideView.hidden = over;
+    }));
+    // cambiar macro/micro
+    $all('[data-ovkind]').forEach((b) => b.addEventListener('click', () => {
+      $all('[data-ovkind]').forEach((x) => x.classList.toggle('active', x === b));
+      loadKind(b.getAttribute('data-ovkind'));
+    }));
+    // cortina (slider + arrastre sobre la imagen)
+    curtain.addEventListener('input', (e) => setCurtain(+e.target.value));
+    const dragTo = (clientX) => {
+      const r = stage.getBoundingClientRect();
+      const v = Math.round(((clientX - r.left) / r.width) * 100);
+      const c = Math.max(0, Math.min(100, v));
+      curtain.value = c; setCurtain(c);
+    };
+    let dragging = false;
+    stage.addEventListener('pointerdown', (e) => { dragging = true; dragTo(e.clientX); });
+    stage.addEventListener('pointermove', (e) => { if (dragging) dragTo(e.clientX); });
+    window.addEventListener('pointerup', () => { dragging = false; });
+    // rotación de B
+    rotInput.addEventListener('input', (e) => { rot = +e.target.value; if (!aligned) { aligned = true; alignBtn.classList.add('on'); alignBtn.textContent = `Alineada (${rot}°)`; } else { alignBtn.textContent = `Alineada (${rot}°)`; } applyRot(); });
+    // toggle alineada / original
+    alignBtn.addEventListener('click', () => {
+      aligned = !aligned;
+      alignBtn.classList.toggle('on', aligned);
+      alignBtn.textContent = aligned ? `Alineada (${rot}°)` : 'Original';
+      applyRot();
+    });
+  }
 
   // PDF de comparación
   const pdfBtn = $('[data-cmppdf]');
